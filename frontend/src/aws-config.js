@@ -9,7 +9,7 @@ export const awsConfig = {
     API: {
       REST: {
         ProductAPI: {
-          endpoint: 'REPLACE_WITH_API_GATEWAY_URL',
+          endpoint: 'https://b6yga2ffv8.execute-api.ap-south-1.amazonaws.com/prod',
           region: 'ap-south-1'
         }
       }

@@ -1,0 +1,377 @@
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Star, ShoppingCart, Heart, Truck, Shield, ArrowLeft, Share2 } from 'lucide-react';
+import { productAPI, activityAPI } from '../services/api';
+import { fetchAuthSession } from 'aws-amplify/auth';
+import RecommendedProducts from '../components/recommendations/RecommendedProducts';
+import FrequentlyBought from '../components/recommendations/FrequentlyBought';
+import SimilarProducts from '../components/recommendations/SimilarProducts';
+
+function ProductPage() {
+  const { productId } = useParams();
+  const navigate = useNavigate();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
+
+  useEffect(() => {
+    loadProduct();
+    logProductView();
+  }, [productId]);
+
+  const loadProduct = async () => {
+    try {
+      setLoading(true);
+      const response = await productAPI.getProduct(productId);
+      setProduct(response.product);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error loading product:', err);
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  const logProductView = async () => {
+    try {
+      const session = await fetchAuthSession();
+      const userId = session.tokens?.idToken?.payload?.sub;
+      
+      if (userId) {
+        await activityAPI.logView(productId, userId);
+        console.log('Product view logged');
+      }
+    } catch (err) {
+      console.log('Could not log view:', err);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    try {
+      const session = await fetchAuthSession();
+      const userId = session.tokens?.idToken?.payload?.sub;
+
+      if (userId) {
+        await activityAPI.logAddToCart(productId, userId);
+      }
+
+      // Add to local cart (you can implement cart context later)
+      console.log('Added to cart:', { product, quantity });
+      
+      setAddedToCart(true);
+      setTimeout(() => setAddedToCart(false), 2000);
+
+      // Show success message
+      alert(`Added ${quantity} ${product.product_name} to cart!`);
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+    }
+  };
+
+  const handleBuyNow = () => {
+    handleAddToCart();
+    navigate('/cart');
+  };
+
+  const handleWishlist = () => {
+    setIsWishlisted(!isWishlisted);
+    console.log('Wishlist toggled:', !isWishlisted);
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: product.product_name,
+        text: product.description,
+        url: window.location.href
+      });
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
+      alert('Link copied to clipboard!');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Loading product details...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-container">
+        <h2>⚠️ Product Not Found</h2>
+        <p>{error}</p>
+        <button onClick={() => navigate('/')}>Go Home</button>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="error-container">
+        <h2>Product not found</h2>
+        <button onClick={() => navigate('/')}>Go Home</button>
+      </div>
+    );
+  }
+
+  const {
+    product_name,
+    description,
+    price,
+    original_price,
+    discount_percentage,
+    category,
+    brand,
+    rating,
+    review_count,
+    stock_quantity,
+    image_url,
+    vendor_name,
+    is_featured,
+    is_bestseller
+  } = product;
+
+  const images = [
+    image_url,
+    `https://picsum.photos/seed/${productId}-2/800/800`,
+    `https://picsum.photos/seed/${productId}-3/800/800`,
+    `https://picsum.photos/seed/${productId}-4/800/800`
+  ];
+
+  const inStock = stock_quantity > 0;
+  const lowStock = stock_quantity < 10;
+
+  return (
+    <div className="product-page">
+      {/* Breadcrumb */}
+      <div className="breadcrumb">
+        <button onClick={() => navigate('/')} className="breadcrumb-link">
+          <ArrowLeft size={16} />
+          <span>Home</span>
+        </button>
+        <span className="breadcrumb-separator">/</span>
+        <button onClick={() => navigate(`/search?category=${category}`)} className="breadcrumb-link">
+          {category}
+        </button>
+        <span className="breadcrumb-separator">/</span>
+        <span className="breadcrumb-current">{product_name}</span>
+      </div>
+
+      <div className="product-detail-container">
+        {/* Left: Image Gallery */}
+        <div className="product-gallery">
+          <div className="main-image">
+            <img src={images[selectedImage]} alt={product_name} />
+            {discount_percentage > 0 && (
+              <div className="discount-badge">
+                -{discount_percentage}% OFF
+              </div>
+            )}
+            {is_featured && (
+              <div className="featured-badge">
+                ⭐ Featured
+              </div>
+            )}
+            {is_bestseller && (
+              <div className="bestseller-badge">
+                🏆 Bestseller
+              </div>
+            )}
+          </div>
+
+          <div className="image-thumbnails">
+            {images.map((img, index) => (
+              <div
+                key={index}
+                className={`thumbnail ${selectedImage === index ? 'active' : ''}`}
+                onClick={() => setSelectedImage(index)}
+              >
+                <img src={img} alt={`${product_name} view ${index + 1}`} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: Product Info */}
+        <div className="product-info-section">
+          {/* Product Title */}
+          <div className="product-header">
+            <div>
+              <span className="product-brand">{brand}</span>
+              <h1 className="product-title">{product_name}</h1>
+            </div>
+            <div className="product-actions">
+              <button 
+                className={`icon-button ${isWishlisted ? 'active' : ''}`}
+                onClick={handleWishlist}
+              >
+                <Heart size={24} fill={isWishlisted ? '#ef4444' : 'none'} />
+              </button>
+              <button className="icon-button" onClick={handleShare}>
+                <Share2 size={24} />
+              </button>
+            </div>
+          </div>
+
+          {/* Rating */}
+          <div className="product-rating-section">
+            <div className="rating-stars">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  size={20}
+                  fill={i < Math.floor(rating) ? '#fbbf24' : 'none'}
+                  stroke={i < Math.floor(rating) ? '#fbbf24' : '#d1d5db'}
+                />
+              ))}
+              <span className="rating-value">{rating}</span>
+            </div>
+            <span className="review-count">({review_count.toLocaleString()} reviews)</span>
+          </div>
+
+          {/* Price */}
+          <div className="product-pricing">
+            <div className="price-main">${price.toFixed(2)}</div>
+            {original_price > price && (
+              <>
+                <div className="price-original">${original_price.toFixed(2)}</div>
+                <div className="price-save">
+                  Save ${(original_price - price).toFixed(2)} ({discount_percentage}%)
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Stock Status */}
+          <div className="stock-status">
+            {inStock ? (
+              <>
+                <span className={`stock-badge ${lowStock ? 'low' : 'in-stock'}`}>
+                  {lowStock ? '⚠️ Only a few left' : '✓ In Stock'}
+                </span>
+                <span className="stock-count">
+                  {stock_quantity} available
+                </span>
+              </>
+            ) : (
+              <span className="stock-badge out-of-stock">✗ Out of Stock</span>
+            )}
+          </div>
+
+          {/* Description */}
+          <div className="product-description">
+            <h3>About this product</h3>
+            <p>{description}</p>
+          </div>
+
+          {/* Product Details */}
+          <div className="product-details">
+            <h3>Product Details</h3>
+            <div className="details-grid">
+              <div className="detail-item">
+                <span className="detail-label">Category:</span>
+                <span className="detail-value">{category}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Brand:</span>
+                <span className="detail-value">{brand}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Sold by:</span>
+                <span className="detail-value">{vendor_name}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Product ID:</span>
+                <span className="detail-value">{productId}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quantity Selector */}
+          <div className="quantity-section">
+            <label>Quantity:</label>
+            <div className="quantity-controls">
+              <button
+                className="quantity-btn"
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                disabled={quantity <= 1}
+              >
+                -
+              </button>
+              <input
+                type="number"
+                className="quantity-input"
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                min="1"
+                max={stock_quantity}
+              />
+              <button
+                className="quantity-btn"
+                onClick={() => setQuantity(Math.min(stock_quantity, quantity + 1))}
+                disabled={quantity >= stock_quantity}
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="product-actions-buttons">
+            <button
+              className="btn-add-to-cart"
+              onClick={handleAddToCart}
+              disabled={!inStock || addedToCart}
+            >
+              <ShoppingCart size={20} />
+              <span>{addedToCart ? 'Added to Cart!' : 'Add to Cart'}</span>
+            </button>
+            <button
+              className="btn-buy-now"
+              onClick={handleBuyNow}
+              disabled={!inStock}
+            >
+              Buy Now
+            </button>
+          </div>
+
+          {/* Trust Badges */}
+          <div className="trust-badges">
+            <div className="trust-badge">
+              <Truck size={20} />
+              <div>
+                <strong>Free Delivery</strong>
+                <span>On orders over $50</span>
+              </div>
+            </div>
+            <div className="trust-badge">
+              <Shield size={20} />
+              <div>
+                <strong>Secure Payment</strong>
+                <span>100% secure transactions</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recommendations */}
+      <div className="recommendations-section">
+        <FrequentlyBought productId={productId} />
+        <SimilarProducts productId={productId} category={category} />
+      </div>
+    </div>
+  );
+}
+
+export default ProductPage;
