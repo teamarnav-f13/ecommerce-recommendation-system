@@ -1,7 +1,7 @@
 import { fetchAuthSession } from 'aws-amplify/auth';
 
 // Replace with your actual API Gateway URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://mock-api.example.com/prod';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://b6yga2ffv8.execute-api.ap-south-1.amazonaws.com/prod';
 
 async function apiRequest(endpoint, options = {}) {
   try {
