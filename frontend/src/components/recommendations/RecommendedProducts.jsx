@@ -5,73 +5,29 @@ import ProductCard from '../products/ProductCard';
 function RecommendedProducts({ userId, productId }) {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    loadRecommendations();
+    if (userId || productId) {
+      loadRecommendations();
+    }
   }, [userId, productId]);
 
   const loadRecommendations = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      // Mock data for now - will be replaced with real API
-      const mockRecommendations = [
-        {
-          product_id: 'REC-001',
-          product_name: 'Recommended Product 1',
-          category: 'Electronics',
-          price: 59.99,
-          popularity_score: 75,
-          image_url: 'https://picsum.photos/seed/rec1/800/800',
-          rating: 4.3,
-          review_count: 123
-        },
-        {
-          product_id: 'REC-002',
-          product_name: 'Recommended Product 2',
-          category: 'Electronics',
-          price: 89.99,
-          popularity_score: 82,
-          image_url: 'https://picsum.photos/seed/rec2/800/800',
-          rating: 4.5,
-          review_count: 234
-        },
-        {
-          product_id: 'REC-003',
-          product_name: 'Recommended Product 3',
-          category: 'Home & Garden',
-          price: 39.99,
-          popularity_score: 68,
-          image_url: 'https://picsum.photos/seed/rec3/800/800',
-          rating: 4.1,
-          review_count: 87
-        },
-        {
-          product_id: 'REC-004',
-          product_name: 'Recommended Product 4',
-          category: 'Sports',
-          price: 69.99,
-          popularity_score: 79,
-          image_url: 'https://picsum.photos/seed/rec4/800/800',
-          rating: 4.4,
-          review_count: 156
-        }
-      ];
-
-      setTimeout(() => {
-        setRecommendations(mockRecommendations);
-        setLoading(false);
-      }, 500);
-
-      // Uncomment when API is ready:
-      // const response = await recommendationAPI.getRecommendations({
-      //   user_id: userId,
-      //   product_id: productId
-      // });
-      // setRecommendations(response.recommendations);
-      // setLoading(false);
-    } catch (error) {
-      console.error('Error loading recommendations:', error);
+      const response = await recommendationAPI.getRecommendations({
+        user_id: userId,
+        product_id: productId
+      });
+      
+      setRecommendations(response.recommendations || []);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error loading recommendations:', err);
+      setError(err.message);
       setLoading(false);
     }
   };
@@ -84,8 +40,13 @@ function RecommendedProducts({ userId, productId }) {
     );
   }
 
+  if (error) {
+    console.error('Recommendation error:', error);
+    return null; // Don't show error to user, just hide section
+  }
+
   if (!recommendations || recommendations.length === 0) {
-    return null;
+    return null; // Don't show empty section
   }
 
   return (
