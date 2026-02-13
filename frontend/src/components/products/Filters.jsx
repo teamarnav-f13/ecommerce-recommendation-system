@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SlidersHorizontal, X } from 'lucide-react';
 
 function Filters({ onFilterChange }) {
@@ -10,20 +10,34 @@ function Filters({ onFilterChange }) {
     sortBy: 'popularity'
   });
 
+  // Categories from your DynamoDB data
   const categories = [
     'All Categories',
     'Electronics',
     'Clothing',
     'Home & Garden',
-    'Sports',
+    'Sports & Outdoors',
     'Books',
-    'Toys'
+    'Toys & Games',
+    'Health & Beauty',
+    'Automotive'
   ];
 
   const handleFilterChange = (key, value) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
     onFilterChange(newFilters);
+  };
+
+  const clearFilters = () => {
+    const clearedFilters = {
+      category: 'all',
+      minPrice: '',
+      maxPrice: '',
+      sortBy: 'popularity'
+    };
+    setFilters(clearedFilters);
+    onFilterChange({});
   };
 
   return (
@@ -53,7 +67,7 @@ function Filters({ onFilterChange }) {
               onChange={(e) => handleFilterChange('category', e.target.value)}
             >
               {categories.map(cat => (
-                <option key={cat} value={cat.toLowerCase()}>
+                <option key={cat} value={cat === 'All Categories' ? 'all' : cat}>
                   {cat}
                 </option>
               ))}
@@ -90,21 +104,14 @@ function Filters({ onFilterChange }) {
               <option value="popularity">Popularity</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>
+              <option value="rating">Customer Rating</option>
               <option value="newest">Newest First</option>
             </select>
           </div>
 
           <button 
             className="clear-filters-button"
-            onClick={() => {
-              setFilters({
-                category: 'all',
-                minPrice: '',
-                maxPrice: '',
-                sortBy: 'popularity'
-              });
-              onFilterChange({});
-            }}
+            onClick={clearFilters}
           >
             Clear All Filters
           </button>
