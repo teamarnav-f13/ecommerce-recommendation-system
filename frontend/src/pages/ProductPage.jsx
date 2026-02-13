@@ -91,11 +91,11 @@ function ProductPage() {
     setTimeout(() => setAddedToCart(false), 2000);
 
     alert(`Added ${quantity} ${product.product_name} to cart!`);
-  } catch (err) {
+    } catch (err) {
     console.error('Error adding to cart:', err);
     alert('Failed to add to cart. Please try again.');
-  }
-};
+    }
+  };
 
   const handleBuyNow = () => {
     handleAddToCart();
