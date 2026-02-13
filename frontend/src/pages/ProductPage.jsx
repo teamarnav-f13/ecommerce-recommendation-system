@@ -141,12 +141,8 @@ function ProductPage() {
     is_bestseller
   } = product;
 
-  const images = [
-    image_url,
-    `https://picsum.photos/seed/${productId}-2/800/800`,
-    `https://picsum.photos/seed/${productId}-3/800/800`,
-    `https://picsum.photos/seed/${productId}-4/800/800`
-  ];
+  // Use images from API (product.images array)
+  const images = product.images || [image_url];
 
   const inStock = stock_quantity > 0;
   const lowStock = stock_quantity < 10;
