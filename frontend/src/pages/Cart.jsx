@@ -12,33 +12,21 @@ function Cart() {
   }, []);
 
   const loadCart = () => {
-    // Mock cart data - replace with actual cart API/localStorage later
-    const mockCartItems = [
-      {
-        id: 'CART-1',
-        product_id: 'PROD-00001',
-        product_name: 'Premium Wireless Headphones',
-        price: 99.99,
-        quantity: 2,
-        image_url: 'https://picsum.photos/seed/1/800/800',
-        vendor_name: 'TechHub',
-        stock_quantity: 50
-      },
-      {
-        id: 'CART-2',
-        product_id: 'PROD-00002',
-        product_name: 'Smart Watch',
-        price: 299.99,
-        quantity: 1,
-        image_url: 'https://picsum.photos/seed/2/800/800',
-        vendor_name: 'TechHub',
-        stock_quantity: 30
-      }
-    ];
-
-    setCartItems(mockCartItems);
-    setLoading(false);
-  };
+  // Load cart from localStorage
+  try {
+    const savedCart = localStorage.getItem('shopping_cart');
+    if (savedCart) {
+      const cartItems = JSON.parse(savedCart);
+      setCartItems(cartItems);
+    } else {
+      setCartItems([]);
+    }
+  } catch (error) {
+    console.error('Error loading cart:', error);
+    setCartItems([]);
+  }
+  setLoading(false);
+};
 
   const updateQuantity = (itemId, newQuantity) => {
     if (newQuantity < 1) return;
