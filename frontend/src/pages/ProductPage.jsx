@@ -51,26 +51,51 @@ function ProductPage() {
   };
 
   const handleAddToCart = async () => {
-    try {
-      const session = await fetchAuthSession();
-      const userId = session.tokens?.idToken?.payload?.sub;
+  try {
+    const session = await fetchAuthSession();
+    const userId = session.tokens?.idToken?.payload?.sub;
 
-      if (userId) {
-        await activityAPI.logAddToCart(productId, userId);
-      }
-
-      // Add to local cart (you can implement cart context later)
-      console.log('Added to cart:', { product, quantity });
-      
-      setAddedToCart(true);
-      setTimeout(() => setAddedToCart(false), 2000);
-
-      // Show success message
-      alert(`Added ${quantity} ${product.product_name} to cart!`);
-    } catch (err) {
-      console.error('Error adding to cart:', err);
+    if (userId) {
+      await activityAPI.logAddToCart(productId, userId);
     }
-  };
+
+    // Add to localStorage cart
+    const cartItem = {
+      id: `CART-${Date.now()}`,
+      product_id: product.product_id,
+      product_name: product.product_name,
+      price: product.price,
+      quantity: quantity,
+      image_url: product.images[0] || product.image_url,
+      vendor_name: product.vendor_name,
+      stock_quantity: product.stock_quantity
+    };
+
+    const savedCart = localStorage.getItem('shopping_cart');
+    const currentCart = savedCart ? JSON.parse(savedCart) : [];
+    
+    // Check if item already in cart
+    const existingIndex = currentCart.findIndex(item => item.product_id === product.product_id);
+    
+    if (existingIndex >= 0) {
+      // Update quantity
+      currentCart[existingIndex].quantity += quantity;
+    } else {
+      // Add new item
+      currentCart.push(cartItem);
+    }
+    
+    localStorage.setItem('shopping_cart', JSON.stringify(currentCart));
+
+    setAddedToCart(true);
+    setTimeout(() => setAddedToCart(false), 2000);
+
+    alert(`Added ${quantity} ${product.product_name} to cart!`);
+  } catch (err) {
+    console.error('Error adding to cart:', err);
+    alert('Failed to add to cart. Please try again.');
+  }
+};
 
   const handleBuyNow = () => {
     handleAddToCart();
