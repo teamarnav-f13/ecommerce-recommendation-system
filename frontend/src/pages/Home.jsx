@@ -1,47 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useFeaturedProducts } from '../hooks/useProducts';
 import ProductGrid from '../components/products/ProductGrid';
 import RecommendedProducts from '../components/recommendations/RecommendedProducts';
+import { fetchAuthSession } from 'aws-amplify/auth';
+import { useState, useEffect } from 'react';
 
 function Home() {
-  const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { products: featuredProducts, loading } = useFeaturedProducts(12);
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
-    // Mock data for now - will be replaced with API call
-    setTimeout(() => {
-      setFeaturedProducts([
-        {
-          product_id: 'PROD-001',
-          product_name: 'Wireless Headphones',
-          category: 'Electronics',
-          price: 99.99,
-          popularity_score: 85
-        },
-        {
-          product_id: 'PROD-002',
-          product_name: 'Smart Watch',
-          category: 'Electronics',
-          price: 299.99,
-          popularity_score: 92
-        },
-        {
-          product_id: 'PROD-003',
-          product_name: 'Running Shoes',
-          category: 'Sports',
-          price: 79.99,
-          popularity_score: 78
-        },
-        {
-          product_id: 'PROD-004',
-          product_name: 'Coffee Maker',
-          category: 'Home & Garden',
-          price: 49.99,
-          popularity_score: 65
-        }
-      ]);
-      setLoading(false);
-    }, 1000);
+    getCurrentUser();
   }, []);
+
+  async function getCurrentUser() {
+    try {
+      const session = await fetchAuthSession();
+      const uid = session.tokens?.idToken?.payload?.sub;
+      setUserId(uid);
+    } catch (error) {
+      console.log('Not authenticated');
+    }
+  }
 
   return (
     <div className="home-page">
@@ -59,11 +38,13 @@ function Home() {
         <ProductGrid products={featuredProducts} loading={loading} />
       </section>
 
-      {/* Recommended Section */}
-      <section className="section">
-        <h2 className="section-title">Recommended For You</h2>
-        <RecommendedProducts userId="current-user" />
-      </section>
+      {/* Recommended Section - Only show if user is logged in */}
+      {userId && (
+        <section className="section">
+          <h2 className="section-title">Recommended For You</h2>
+          <RecommendedProducts userId={userId} />
+        </section>
+      )}
     </div>
   );
 }
