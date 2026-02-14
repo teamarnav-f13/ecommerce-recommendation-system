@@ -2,10 +2,25 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ShoppingCart, User, LogOut } from 'lucide-react';
 import SearchBar from './SearchBar';
+import { useEffect } from 'react';
 
 function Header({ user, signOut }) {
   const navigate = useNavigate();
-  const [cartCount, setCartCount] = useState(3); // Mock for now
+  const [cartCount, setCartCount] = useState(0);
+
+  useEffect(() => {
+  // Load cart count from localStorage
+    const savedCart = localStorage.getItem('shopping_cart');
+    if (savedCart) {
+      try {
+        const cart = JSON.parse(savedCart);
+        const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+        setCartCount(count);
+      } catch (error) {
+        console.error('Error loading cart count:', error);
+      }
+    }
+  }, []);
 
   return (
     <header className="header">
