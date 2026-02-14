@@ -1,26 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ShoppingCart, User, LogOut } from 'lucide-react';
 import SearchBar from './SearchBar';
-import { useEffect } from 'react';
 
 function Header({ user, signOut }) {
   const navigate = useNavigate();
   const [cartCount, setCartCount] = useState(0);
 
+  // Load cart count on mount
   useEffect(() => {
-  // Load cart count from localStorage
-    const savedCart = localStorage.getItem('shopping_cart');
-    if (savedCart) {
-      try {
+    updateCartCount();
+  }, []);
+
+  // Listen for cart updates
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      updateCartCount();
+    };
+    
+    window.addEventListener('cart-updated', handleCartUpdate);
+    
+    return () => {
+      window.removeEventListener('cart-updated', handleCartUpdate);
+    };
+  }, []);
+
+  const updateCartCount = () => {
+    try {
+      const savedCart = localStorage.getItem('shopping_cart');
+      if (savedCart) {
         const cart = JSON.parse(savedCart);
         const count = cart.reduce((sum, item) => sum + item.quantity, 0);
         setCartCount(count);
-      } catch (error) {
-        console.error('Error loading cart count:', error);
+      } else {
+        setCartCount(0);
       }
+    } catch (error) {
+      console.error('Error loading cart count:', error);
+      setCartCount(0);
     }
-  }, []);
+  };
 
   return (
     <header className="header">
@@ -45,7 +64,7 @@ function Header({ user, signOut }) {
 
           <div className="user-menu">
             <User size={24} />
-            <span>{user?.signInDetails?.loginId || 'Account'}</span>
+            <span>{user?.signInDetails?.loginId || user?.username || 'Account'}</span>
           </div>
 
           <button onClick={signOut} className="sign-out-button">
