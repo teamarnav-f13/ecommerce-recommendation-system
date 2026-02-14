@@ -38,13 +38,6 @@ function Home() {
         <ProductGrid products={featuredProducts} loading={loading} />
       </section>
 
-      {/* Recommended Section - Only show if user is logged in */}
-      {userId && (
-        <section className="section">
-          <h2 className="section-title">Recommended For You</h2>
-          <RecommendedProducts userId={userId} />
-        </section>
-      )}
     </div>
   );
 }
