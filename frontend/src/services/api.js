@@ -120,38 +120,30 @@ export const activityAPI = {
 
 // Recommendation API endpoints
 export const recommendationAPI = {
-  /**
-   * Get recommendations for a user/product
-   * @param {Object} params - { user_id, product_id, type }
-   */
+  // General recommendations for user
   getRecommendations: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     return apiRequest(`/recommendations?${queryString}`);
   },
 
-  /**
-   * Get frequently bought together products
-   * @param {string} productId - Product ID
-   */
+  // Frequently bought together
   getFrequentlyBought: async (productId) => {
-    return apiRequest(`/recommendations/frequently-bought?product_id=${productId}`);
+    return apiRequest(`/recommendations?product_id=${productId}&type=frequently-bought&limit=4`);
   },
 
-  /**
-   * Get similar products
-   * @param {string} productId - Product ID
-   * @param {string} category - Category
-   */
-  getSimilarProducts: async (productId, category) => {
-    return apiRequest(`/recommendations/similar?product_id=${productId}&category=${category}`);
+  // Similar products (category-based)
+  getSimilarProducts: async (productId) => {
+    return apiRequest(`/recommendations?product_id=${productId}&type=similar&limit=8`);
   },
 
-  /**
-   * Get users also viewed
-   * @param {string} productId - Product ID
-   */
+  // Users also viewed
   getUsersAlsoViewed: async (productId) => {
-    return apiRequest(`/recommendations/also-viewed?product_id=${productId}`);
+    return apiRequest(`/recommendations?product_id=${productId}&type=also-viewed&limit=6`);
+  },
+
+  // Personalized for user
+  getPersonalizedForUser: async (userId) => {
+    return apiRequest(`/recommendations?user_id=${userId}&limit=8`);
   }
 };
 
