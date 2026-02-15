@@ -59,23 +59,30 @@ function ProductPage() {
       await activityAPI.logAddToCart(productId, userId);
     }
 
+    // Get the first image safely
+    let productImage = image_url; // Default from product data
+    if (images && images.length > 0) {
+      productImage = images[0];
+    }
+
     // Add to localStorage cart
     const cartItem = {
       id: `CART-${Date.now()}`,
-      product_id: product.product_id,
-      product_name: product.product_name,
-      price: product.price,
+      product_id: product_id,
+      product_name: product_name,
+      price: price,
       quantity: quantity,
-      image_url: product.images[0] || product.image_url,
-      vendor_name: product.vendor_name,
-      stock_quantity: product.stock_quantity
+      image_url: productImage,
+      vendor_name: vendor_name || 'ShopSmart',
+      stock_quantity: stock_quantity || 100
     };
 
+    // Get existing cart
     const savedCart = localStorage.getItem('shopping_cart');
     const currentCart = savedCart ? JSON.parse(savedCart) : [];
     
     // Check if item already in cart
-    const existingIndex = currentCart.findIndex(item => item.product_id === product.product_id);
+    const existingIndex = currentCart.findIndex(item => item.product_id === product_id);
     
     if (existingIndex >= 0) {
       // Update quantity
@@ -85,17 +92,21 @@ function ProductPage() {
       currentCart.push(cartItem);
     }
     
+    // Save to localStorage
     localStorage.setItem('shopping_cart', JSON.stringify(currentCart));
-
+    
+    // Update cart count in header
+    window.dispatchEvent(new Event('cart-updated'));
+    
+    // Show feedback
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
-
-    alert(`Added ${quantity} ${product.product_name} to cart!`);
-    } catch (err) {
+    
+  } catch (err) {
     console.error('Error adding to cart:', err);
     alert('Failed to add to cart. Please try again.');
-    }
-  };
+  }
+};
 
   const handleBuyNow = () => {
     handleAddToCart();
