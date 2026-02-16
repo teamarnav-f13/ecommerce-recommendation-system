@@ -19,77 +19,68 @@ function ProductCard({ product }) {
   const productRating = rating || Math.min(5, Math.floor((popularity_score || 50) / 20));
   const imageUrl = (images && images[0]) || `https://picsum.photos/seed/${product_id}/400/400`;
 
-  const handleAddToCart = async () => {
-  try {
-    // Log activity if user is authenticated
+  const handleAddToCart = (e) => {
+    e.preventDefault(); // Prevent navigation to product page
+    e.stopPropagation();
+
     try {
-      const session = await fetchAuthSession();
-      const userId = session.tokens?.idToken?.payload?.sub;
-      if (userId) {
-        await activityAPI.logAddToCart(productId, userId);
+      console.log('ProductCard: Adding to cart...', product_name);
+
+      // Get existing cart from localStorage
+      let currentCart = [];
+      try {
+        const savedCart = localStorage.getItem('shopping_cart');
+        if (savedCart) {
+          currentCart = JSON.parse(savedCart);
+        }
+      } catch (parseError) {
+        console.error('Error parsing cart:', parseError);
+        currentCart = [];
       }
-    } catch (authError) {
-      console.log('Not authenticated, skipping activity log');
-    }
-
-    // Safely get the product image
-    const productImage = (images && images.length > 0) ? images[0] : image_url;
-
-    // Create cart item
-    const cartItem = {
-      id: `CART-${Date.now()}`,
-      product_id: product_id,
-      product_name: product_name,
-      price: price,
-      quantity: quantity,
-      image_url: productImage,
-      vendor_name: vendor_name || 'ShopSmart',
-      stock_quantity: stock_quantity || 100
-    };
-
-    // Get existing cart from localStorage
-    let currentCart = [];
-    try {
-      const savedCart = localStorage.getItem('shopping_cart');
-      if (savedCart) {
-        currentCart = JSON.parse(savedCart);
+      
+      // Check if item already in cart
+      const existingIndex = currentCart.findIndex(item => item.product_id === product_id);
+      
+      if (existingIndex >= 0) {
+        // Update quantity of existing item
+        currentCart[existingIndex].quantity += 1;
+        console.log('ProductCard: Updated existing item quantity');
+      } else {
+        // Add new item to cart
+        const cartItem = {
+          id: `CART-${Date.now()}`,
+          product_id: product_id,
+          product_name: product_name,
+          price: price,
+          quantity: 1,
+          image_url: imageUrl,
+          vendor_name: product.vendor_name || 'ShopSmart',
+          stock_quantity: product.stock_quantity || 100
+        };
+        currentCart.push(cartItem);
+        console.log('ProductCard: Added new item to cart');
       }
+      
+      // Save to localStorage
+      localStorage.setItem('shopping_cart', JSON.stringify(currentCart));
+      console.log('ProductCard: Cart saved to localStorage');
+      
+      // Trigger cart update event for header
+      window.dispatchEvent(new Event('cart-updated'));
+      
+      // Show feedback
+      setAddedToCart(true);
+      setTimeout(() => setAddedToCart(false), 2000);
+      
+      console.log('✅ ProductCard: Successfully added to cart');
+      
     } catch (error) {
-      console.error('Error reading cart:', error);
-      currentCart = [];
+      console.error('❌ ProductCard: Error adding to cart:', error);
+      console.error('Error details:', error.stack);
+      // Don't show alert - just log the error
+      setAddedToCart(false);
     }
-    
-    // Check if product already in cart
-    const existingIndex = currentCart.findIndex(item => item.product_id === product_id);
-    
-    if (existingIndex >= 0) {
-      // Update quantity of existing item
-      currentCart[existingIndex].quantity += quantity;
-      console.log('Updated existing cart item');
-    } else {
-      // Add new item to cart
-      currentCart.push(cartItem);
-      console.log('Added new item to cart');
-    }
-    
-    // Save updated cart to localStorage
-    localStorage.setItem('shopping_cart', JSON.stringify(currentCart));
-    console.log('Cart saved to localStorage');
-    
-    // Trigger cart update event for header
-    window.dispatchEvent(new Event('cart-updated'));
-    
-    // Show success feedback
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2000);
-    
-    console.log('✅ Product added to cart successfully');
-    
-  } catch (err) {
-    console.error('❌ Error adding to cart:', err);
-    alert('Failed to add to cart. Please try again.');
-  }
-};
+  };
 
   return (
     <div className="product-card">
