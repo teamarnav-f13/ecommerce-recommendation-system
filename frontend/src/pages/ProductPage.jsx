@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, ShoppingCart, Heart, Truck, Shield, ArrowLeft, Share2 } from 'lucide-react';
-import { productAPI, activityAPI } from '../services/api';
+import { productAPI } from '../services/api';
 import { fetchAuthSession } from 'aws-amplify/auth';
-import RecommendedProducts from '../components/recommendations/RecommendedProducts';
 import FrequentlyBought from '../components/recommendations/FrequentlyBought';
 import SimilarProducts from '../components/recommendations/SimilarProducts';
 
@@ -20,7 +19,6 @@ function ProductPage() {
 
   useEffect(() => {
     loadProduct();
-    logProductView();
   }, [productId]);
 
   const loadProduct = async () => {
@@ -36,81 +34,81 @@ function ProductPage() {
     }
   };
 
-  const logProductView = async () => {
+  const handleAddToCart = () => {
     try {
-      const session = await fetchAuthSession();
-      const userId = session.tokens?.idToken?.payload?.sub;
-      
-      if (userId) {
-        await activityAPI.logView(productId, userId);
-        console.log('Product view logged');
+      console.log('Adding to cart...', product);
+
+      // Safely get product image
+      let productImage = product.image_url || `https://picsum.photos/seed/${productId}/800/800`;
+      if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+        productImage = product.images[0];
       }
+
+      // Create cart item
+      const cartItem = {
+        id: `CART-${Date.now()}`,
+        product_id: product.product_id,
+        product_name: product.product_name,
+        price: product.price,
+        quantity: quantity,
+        image_url: productImage,
+        vendor_name: product.vendor_name || 'ShopSmart',
+        stock_quantity: product.stock_quantity || 100
+      };
+
+      console.log('Cart item created:', cartItem);
+
+      // Get existing cart from localStorage
+      let currentCart = [];
+      try {
+        const savedCart = localStorage.getItem('shopping_cart');
+        if (savedCart) {
+          currentCart = JSON.parse(savedCart);
+        }
+      } catch (parseError) {
+        console.error('Error parsing cart:', parseError);
+        currentCart = [];
+      }
+
+      // Check if product already in cart
+      const existingIndex = currentCart.findIndex(item => item.product_id === product.product_id);
+
+      if (existingIndex >= 0) {
+        // Update quantity of existing item
+        currentCart[existingIndex].quantity += quantity;
+        console.log('Updated existing cart item');
+      } else {
+        // Add new item to cart
+        currentCart.push(cartItem);
+        console.log('Added new item to cart');
+      }
+
+      // Save updated cart to localStorage
+      localStorage.setItem('shopping_cart', JSON.stringify(currentCart));
+      console.log('Cart saved to localStorage');
+
+      // Trigger cart update event for header
+      window.dispatchEvent(new Event('cart-updated'));
+
+      // Show success feedback
+      setAddedToCart(true);
+      setTimeout(() => setAddedToCart(false), 2000);
+
+      console.log('✅ Product added to cart successfully');
+
     } catch (err) {
-      console.log('Could not log view:', err);
+      console.error('❌ Error adding to cart:', err);
+      console.error('Error details:', err.stack);
+      // Show a more helpful error message
+      alert('Error adding to cart. Please check the console for details.');
     }
   };
 
-  const handleAddToCart = async () => {
-  try {
-    const session = await fetchAuthSession();
-    const userId = session.tokens?.idToken?.payload?.sub;
-
-    if (userId) {
-      await activityAPI.logAddToCart(productId, userId);
-    }
-
-    // Get the first image safely
-    let productImage = image_url; // Default from product data
-    if (images && images.length > 0) {
-      productImage = images[0];
-    }
-
-    // Add to localStorage cart
-    const cartItem = {
-      id: `CART-${Date.now()}`,
-      product_id: product_id,
-      product_name: product_name,
-      price: price,
-      quantity: quantity,
-      image_url: productImage,
-      vendor_name: vendor_name || 'ShopSmart',
-      stock_quantity: stock_quantity || 100
-    };
-
-    // Get existing cart
-    const savedCart = localStorage.getItem('shopping_cart');
-    const currentCart = savedCart ? JSON.parse(savedCart) : [];
-    
-    // Check if item already in cart
-    const existingIndex = currentCart.findIndex(item => item.product_id === product_id);
-    
-    if (existingIndex >= 0) {
-      // Update quantity
-      currentCart[existingIndex].quantity += quantity;
-    } else {
-      // Add new item
-      currentCart.push(cartItem);
-    }
-    
-    // Save to localStorage
-    localStorage.setItem('shopping_cart', JSON.stringify(currentCart));
-    
-    // Update cart count in header
-    window.dispatchEvent(new Event('cart-updated'));
-    
-    // Show feedback
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2000);
-    
-  } catch (err) {
-    console.error('Error adding to cart:', err);
-    alert('Failed to add to cart. Please try again.');
-  }
-};
-
   const handleBuyNow = () => {
     handleAddToCart();
-    navigate('/cart');
+    setTimeout(() => {
+      navigate('/cart');
+    }, 500);
   };
 
   const handleWishlist = () => {
@@ -126,7 +124,6 @@ function ProductPage() {
         url: window.location.href
       });
     } else {
-      // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href);
       alert('Link copied to clipboard!');
     }
@@ -141,20 +138,11 @@ function ProductPage() {
     );
   }
 
-  if (error) {
+  if (error || !product) {
     return (
       <div className="error-container">
         <h2>⚠️ Product Not Found</h2>
-        <p>{error}</p>
-        <button onClick={() => navigate('/')}>Go Home</button>
-      </div>
-    );
-  }
-
-  if (!product) {
-    return (
-      <div className="error-container">
-        <h2>Product not found</h2>
+        <p>{error || 'This product does not exist'}</p>
         <button onClick={() => navigate('/')}>Go Home</button>
       </div>
     );
@@ -177,8 +165,15 @@ function ProductPage() {
     is_bestseller
   } = product;
 
-  // Use images from API (product.images array)
-  const images = product.images || [image_url];
+  // Use images from product data if available, otherwise use placeholders
+  const images = product.images && Array.isArray(product.images) && product.images.length > 0
+    ? product.images
+    : [
+        image_url || `https://picsum.photos/seed/${productId}/800/800`,
+        `https://picsum.photos/seed/${productId}-2/800/800`,
+        `https://picsum.photos/seed/${productId}-3/800/800`,
+        `https://picsum.photos/seed/${productId}-4/800/800`
+      ];
 
   const inStock = stock_quantity > 0;
   const lowStock = stock_quantity < 10;
@@ -268,7 +263,7 @@ function ProductPage() {
               ))}
               <span className="rating-value">{rating}</span>
             </div>
-            <span className="review-count">({review_count.toLocaleString()} reviews)</span>
+            <span className="review-count">({review_count?.toLocaleString() || 0} reviews)</span>
           </div>
 
           {/* Price */}
