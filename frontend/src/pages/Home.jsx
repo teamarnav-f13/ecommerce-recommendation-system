@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 function Home() {
   const { products: featuredProducts, loading } = useFeaturedProducts(12);
   const [userId, setUserId] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
     getCurrentUser();
@@ -17,9 +18,11 @@ function Home() {
       const session = await fetchAuthSession();
       const uid = session.tokens?.idToken?.payload?.sub;
       setUserId(uid);
-      console.log('Current user ID:', uid);
+      console.log('✅ Current user ID:', uid);
     } catch (error) {
-      console.log('Not authenticated');
+      console.log('ℹ️ Not authenticated');
+    } finally {
+      setLoadingUser(false);
     }
   }
 
@@ -39,11 +42,9 @@ function Home() {
         <ProductGrid products={featuredProducts} loading={loading} />
       </section>
 
-      {/* Recommended Section - Shows if user is logged in */}
+      {/* Recommended Products - Component has its own heading */}
       {!loadingUser && userId && (
-         <section className="section">
-           <RecommendedProducts userId={userId} />
-         </section>
+        <RecommendedProducts userId={userId} />
       )}
     </div>
   );
