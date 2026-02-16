@@ -7,39 +7,21 @@ function Header({ user, signOut }) {
   const navigate = useNavigate();
   const [cartCount, setCartCount] = useState(0);
 
-  // Load cart count on mount
   useEffect(() => {
-    updateCartCount();
-  }, []);
-
-  // Listen for cart updates
-  useEffect(() => {
-    const handleCartUpdate = () => {
-      updateCartCount();
-    };
-    
-    window.addEventListener('cart-updated', handleCartUpdate);
-    
-    return () => {
-      window.removeEventListener('cart-updated', handleCartUpdate);
-    };
-  }, []);
-
-  const updateCartCount = () => {
-    try {
-      const savedCart = localStorage.getItem('shopping_cart');
-      if (savedCart) {
+    // Load cart count from localStorage
+    const savedCart = localStorage.getItem('shopping_cart');
+    if (savedCart) {
+      try {
         const cart = JSON.parse(savedCart);
         const count = cart.reduce((sum, item) => sum + item.quantity, 0);
         setCartCount(count);
-      } else {
-        setCartCount(0);
+      } catch (error) {
+        console.error('Error loading cart count:', error);
       }
-    } catch (error) {
-      console.error('Error loading cart count:', error);
-      setCartCount(0);
     }
-  };
+  }, []);
+
+  
 
   return (
     <header className="header">
