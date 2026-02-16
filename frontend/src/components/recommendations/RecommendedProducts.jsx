@@ -60,7 +60,7 @@ function RecommendedProducts({ userId, productId }) {
   return (
     <div className="recommendation-section">
       <div className="recommendation-header">
-        <h2>✨ Recommended For You</h2>
+        <h2>Recommended For You</h2>
         <p className="recommendation-subtitle">
           Based on your browsing and purchase history
         </p>
