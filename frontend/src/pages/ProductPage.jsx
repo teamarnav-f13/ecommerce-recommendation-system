@@ -5,6 +5,7 @@ import { productAPI } from '../services/api';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import FrequentlyBought from '../components/recommendations/FrequentlyBought';
 import SimilarProducts from '../components/recommendations/SimilarProducts';
+import { activityAPI } from '../services/api';
 
 function ProductPage() {
   const { productId } = useParams();
@@ -20,6 +21,27 @@ function ProductPage() {
   useEffect(() => {
     loadProduct();
   }, [productId]);
+
+// Add this useEffect
+  useEffect(() => {
+  if (product && productId) {
+    logProductView();
+  }
+}, [product, productId]);
+
+  const logProductView = async () => {
+    try {
+      const session = await fetchAuthSession();
+      const userId = session.tokens?.idToken?.payload?.sub;
+    
+      if (userId && productId) {
+        await activityAPI.logView(productId, userId);
+        console.log('✅ Product view logged');
+      }
+    } catch (error) {
+      console.error('Error logging view:', error);
+    }
+  };
 
   const loadProduct = async () => {
     try {
