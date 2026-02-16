@@ -18,10 +18,17 @@ function RecommendedProducts({ userId, productId }) {
       setLoading(true);
       setError(null);
       
-      const response = await recommendationAPI.getRecommendations({
-        user_id: userId,
-        product_id: productId
-      });
+      // Build params - only include defined values
+      const params = {};
+      if (userId) params.user_id = userId;
+      if (productId) params.product_id = productId;
+      params.limit = 8;
+      
+      console.log('Loading recommendations with params:', params);
+      
+      const response = await recommendationAPI.getRecommendations(params);
+      
+      console.log('Recommendations response:', response);
       
       setRecommendations(response.recommendations || []);
       setLoading(false);
@@ -42,10 +49,11 @@ function RecommendedProducts({ userId, productId }) {
 
   if (error) {
     console.error('Recommendation error:', error);
-    return null; // Don't show error to user, just hide section
+    return null; // Don't show error to user
   }
 
   if (!recommendations || recommendations.length === 0) {
+    console.log('No recommendations available');
     return null; // Don't show empty section
   }
 
