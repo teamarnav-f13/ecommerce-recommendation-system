@@ -1,8 +1,9 @@
 import { fetchAuthSession } from 'aws-amplify/auth';
 
-// Replace with your actual API Gateway URL
+// API Gateway base URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://b6yga2ffv8.execute-api.ap-south-1.amazonaws.com/prod';
 
+// Helper function for API requests
 async function apiRequest(endpoint, options = {}) {
   try {
     const session = await fetchAuthSession();
@@ -22,6 +23,8 @@ async function apiRequest(endpoint, options = {}) {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ API Error ${response.status}:`, errorText);
       throw new Error(`API Error: ${response.status}`);
     }
 
@@ -34,11 +37,21 @@ async function apiRequest(endpoint, options = {}) {
   }
 }
 
+// Helper to get session ID (persisted in sessionStorage)
+function getSessionId() {
+  let sessionId = sessionStorage.getItem('session_id');
+  if (!sessionId) {
+    sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    sessionStorage.setItem('session_id', sessionId);
+  }
+  return sessionId;
+}
+
 // Product API endpoints
 export const productAPI = {
   /**
    * Search products
-   * @param {Object} params - Search parameters (q, category, minPrice, maxPrice, vendor, sortBy, page, limit)
+   * @param {Object} params - Search parameters
    */
   search: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
@@ -70,32 +83,67 @@ export const activityAPI = {
    * @param {string} userId - User ID
    */
   logView: async (productId, userId) => {
-    return apiRequest('/activity/view', {
-      method: 'POST',
-      body: JSON.stringify({
-        product_id: productId,
-        user_id: userId,
-        event_type: 'view',
-        timestamp: new Date().toISOString()
-      })
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/activity`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          product_id: productId,
+          event_type: 'view',
+          session_id: getSessionId()
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to log view: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ View logged:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Error logging view:', error);
+      // Don't throw - activity logging failure shouldn't break the app
+      return null;
+    }
   },
 
   /**
    * Log add to cart event
    * @param {string} productId - Product ID
    * @param {string} userId - User ID
+   * @param {number} quantity - Quantity added
    */
-  logAddToCart: async (productId, userId) => {
-    return apiRequest('/activity/cart', {
-      method: 'POST',
-      body: JSON.stringify({
-        product_id: productId,
-        user_id: userId,
-        event_type: 'add_to_cart',
-        timestamp: new Date().toISOString()
-      })
-    });
+  logAddToCart: async (productId, userId, quantity = 1) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/activity`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          product_id: productId,
+          event_type: 'add_to_cart',
+          quantity: quantity,
+          session_id: getSessionId()
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to log add to cart: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ Add to cart logged:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Error logging add to cart:', error);
+      return null;
+    }
   },
 
   /**
@@ -103,23 +151,45 @@ export const activityAPI = {
    * @param {string} productId - Product ID
    * @param {string} userId - User ID
    * @param {number} quantity - Quantity purchased
+   * @param {string} orderId - Order ID
    */
-  logPurchase: async (productId, userId, quantity = 1) => {
-    return apiRequest('/activity/purchase', {
-      method: 'POST',
-      body: JSON.stringify({
-        product_id: productId,
-        user_id: userId,
-        event_type: 'purchase',
-        quantity: quantity,
-        timestamp: new Date().toISOString()
-      })
-    });
+  logPurchase: async (productId, userId, quantity, orderId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/activity`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          product_id: productId,
+          event_type: 'purchase',
+          quantity: quantity,
+          order_id: orderId,
+          session_id: getSessionId()
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to log purchase: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ Purchase logged:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Error logging purchase:', error);
+      return null;
+    }
   }
 };
 
+// Recommendation API endpoints
 export const recommendationAPI = {
-  // General recommendations
+  /**
+   * Get general recommendations
+   * @param {Object} params - Query parameters
+   */
   getRecommendations: async (params = {}) => {
     // Filter out undefined values
     const cleanParams = {};
@@ -130,33 +200,50 @@ export const recommendationAPI = {
     });
     
     const queryString = new URLSearchParams(cleanParams).toString();
-    console.log('Recommendation API query:', queryString);
-    return apiRequest(`/recommendations?${queryString}`);
+    console.log('📡 Recommendation query:', queryString);
+    
+    try {
+      const response = await apiRequest(`/recommendations?${queryString}`);
+      return response;
+    } catch (error) {
+      console.error('❌ Recommendation API error:', error);
+      // Return empty array instead of throwing
+      return { recommendations: [], count: 0 };
+    }
   },
 
-  // Frequently bought together
+  /**
+   * Get frequently bought together products
+   * @param {string} productId - Product ID
+   */
   getFrequentlyBought: async (productId) => {
     if (!productId || productId === 'undefined') {
       console.warn('Invalid product ID for frequently bought');
-      return { products: [] };
+      return { recommendations: [] };
     }
     return apiRequest(`/recommendations?product_id=${productId}&type=frequently-bought&limit=4`);
   },
 
-  // Similar products (category-based)
-  getSimilarProducts: async (productId, category) => {
+  /**
+   * Get similar products (category-based)
+   * @param {string} productId - Product ID
+   */
+  getSimilarProducts: async (productId) => {
     if (!productId || productId === 'undefined') {
       console.warn('Invalid product ID for similar products');
-      return { products: [] };
+      return { recommendations: [] };
     }
     return apiRequest(`/recommendations?product_id=${productId}&type=similar&limit=8`);
   },
 
-  // Users also viewed
+  /**
+   * Get users also viewed products
+   * @param {string} productId - Product ID
+   */
   getUsersAlsoViewed: async (productId) => {
     if (!productId || productId === 'undefined') {
       console.warn('Invalid product ID for also viewed');
-      return { products: [] };
+      return { recommendations: [] };
     }
     return apiRequest(`/recommendations?product_id=${productId}&type=also-viewed&limit=6`);
   }
