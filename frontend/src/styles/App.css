@@ -1642,7 +1642,7 @@ body {
 }
 
 [data-amplify-authenticator] [data-amplify-router] button {
-  color: #4f5c6f !important;
+  color: #000000 !important;
   font-weight: 600 !important;
   padding: 12px 24px !important;
 }
