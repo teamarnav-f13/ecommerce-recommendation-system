@@ -1612,7 +1612,7 @@ body {
 
 /* Button styling */
 [data-amplify-authenticator] button[type='submit'] {
-  background: #2563eb !important;
+  background: #000000 !important;
   border-radius: 8px !important;
   font-weight: 600 !important;
   padding: 12px !important;
@@ -1642,7 +1642,7 @@ body {
 }
 
 [data-amplify-authenticator] [data-amplify-router] button {
-  color: #64748b !important;
+  color: #ffffff !important;
   font-weight: 600 !important;
   padding: 12px 24px !important;
 }
