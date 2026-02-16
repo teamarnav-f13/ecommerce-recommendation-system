@@ -1578,3 +1578,76 @@ body {
     justify-self: center;
   }
 }
+
+/* ============================================
+   AUTHENTICATOR CUSTOM STYLES
+   ============================================ */
+
+/* Login container styling */
+[data-amplify-authenticator] {
+  --amplify-colors-brand-primary-10: #eff6ff;
+  --amplify-colors-brand-primary-80: #2563eb;
+  --amplify-colors-brand-primary-90: #1e40af;
+  --amplify-colors-brand-primary-100: #1e3a8a;
+}
+
+/* Center the authenticator */
+[data-amplify-authenticator] {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+}
+
+/* Auth card styling */
+[data-amplify-authenticator] [data-amplify-container] {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  max-width: 450px;
+  width: 100%;
+}
+
+/* Button styling */
+[data-amplify-authenticator] button[type='submit'] {
+  background: #2563eb !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  padding: 12px !important;
+  transition: background 0.2s !important;
+}
+
+[data-amplify-authenticator] button[type='submit']:hover {
+  background: #1e40af !important;
+}
+
+/* Input field styling */
+[data-amplify-authenticator] input {
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 10px 12px !important;
+}
+
+[data-amplify-authenticator] input:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+}
+
+/* Tab styling */
+[data-amplify-authenticator] [data-amplify-router] {
+  border-bottom: 2px solid #e2e8f0 !important;
+  margin-bottom: 1.5rem !important;
+}
+
+[data-amplify-authenticator] [data-amplify-router] button {
+  color: #64748b !important;
+  font-weight: 600 !important;
+  padding: 12px 24px !important;
+}
+
+[data-amplify-authenticator] [data-amplify-router] button[data-state='active'] {
+  color: #2563eb !important;
+  border-bottom-color: #2563eb !important;
+}
