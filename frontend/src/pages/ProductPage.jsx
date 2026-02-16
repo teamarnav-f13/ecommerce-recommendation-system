@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, ShoppingCart, Heart, Truck, Shield, ArrowLeft, Share2 } from 'lucide-react';
-import { productAPI } from '../services/api';
+import { productAPI, activityAPI } from '../services/api';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import FrequentlyBought from '../components/recommendations/FrequentlyBought';
 import SimilarProducts from '../components/recommendations/SimilarProducts';
-import { activityAPI } from '../services/api';
 
 function ProductPage() {
   const { productId } = useParams();
@@ -22,26 +21,12 @@ function ProductPage() {
     loadProduct();
   }, [productId]);
 
-// Add this useEffect
+  // Log product view when product loads
   useEffect(() => {
-  if (product && productId) {
-    logProductView();
-  }
-}, [product, productId]);
-
-  const logProductView = async () => {
-    try {
-      const session = await fetchAuthSession();
-      const userId = session.tokens?.idToken?.payload?.sub;
-    
-      if (userId && productId) {
-        await activityAPI.logView(productId, userId);
-        console.log('✅ Product view logged');
-      }
-    } catch (error) {
-      console.error('Error logging view:', error);
+    if (product && productId) {
+      logProductView();
     }
-  };
+  }, [product, productId]);
 
   const loadProduct = async () => {
     try {
@@ -56,9 +41,39 @@ function ProductPage() {
     }
   };
 
-  const handleAddToCart = () => {
+  const logProductView = async () => {
+    try {
+      const session = await fetchAuthSession();
+      const userId = session.tokens?.idToken?.payload?.sub;
+    
+      if (userId && productId) {
+        await activityAPI.logView(productId, userId);
+        console.log('✅ Product view logged to DynamoDB');
+      }
+    } catch (error) {
+      console.error('Error logging view:', error);
+      // Don't block user experience if logging fails
+    }
+  };
+
+  const handleAddToCart = async () => {
     try {
       console.log('Adding to cart...', product);
+
+      // Get user ID for activity logging
+      let userId = null;
+      try {
+        const session = await fetchAuthSession();
+        userId = session.tokens?.idToken?.payload?.sub;
+      } catch (authError) {
+        console.log('Not authenticated, skipping activity log');
+      }
+
+      // Log add to cart activity to DynamoDB
+      if (userId && productId) {
+        await activityAPI.logAddToCart(productId, userId, quantity);
+        console.log('✅ Add to cart logged to DynamoDB');
+      }
 
       // Safely get product image
       let productImage = product.image_url || `https://picsum.photos/seed/${productId}/800/800`;
@@ -77,8 +92,6 @@ function ProductPage() {
         vendor_name: product.vendor_name || 'ShopSmart',
         stock_quantity: product.stock_quantity || 100
       };
-
-      console.log('Cart item created:', cartItem);
 
       // Get existing cart from localStorage
       let currentCart = [];
@@ -120,9 +133,7 @@ function ProductPage() {
 
     } catch (err) {
       console.error('❌ Error adding to cart:', err);
-      console.error('Error details:', err.stack);
-      // Show a more helpful error message
-      alert('Error adding to cart. Please check the console for details.');
+      alert('Failed to add to cart. Please try again.');
     }
   };
 
@@ -187,7 +198,7 @@ function ProductPage() {
     is_bestseller
   } = product;
 
-  // Use images from product data if available, otherwise use placeholders
+  // Use images from product data if available
   const images = product.images && Array.isArray(product.images) && product.images.length > 0
     ? product.images
     : [
