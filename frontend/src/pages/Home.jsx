@@ -40,11 +40,10 @@ function Home() {
       </section>
 
       {/* Recommended Section - Shows if user is logged in */}
-      {userId && (
-        <section className="section">
-          <h2 className="section-title">Recommended For You</h2>
-          <RecommendedProducts userId={userId} />
-        </section>
+      {!loadingUser && userId && (
+         <section className="section">
+           <RecommendedProducts userId={userId} />
+         </section>
       )}
     </div>
   );
