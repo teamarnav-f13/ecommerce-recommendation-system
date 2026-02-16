@@ -7,21 +7,45 @@ function Header({ user, signOut }) {
   const navigate = useNavigate();
   const [cartCount, setCartCount] = useState(0);
 
+  // Initial load
   useEffect(() => {
-    // Load cart count from localStorage
-    const savedCart = localStorage.getItem('shopping_cart');
-    if (savedCart) {
-      try {
-        const cart = JSON.parse(savedCart);
-        const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-        setCartCount(count);
-      } catch (error) {
-        console.error('Error loading cart count:', error);
-      }
-    }
+    updateCartCount();
   }, []);
 
-  
+  // Listen for cart updates
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      updateCartCount();
+    };
+    
+    window.addEventListener('cart-updated', handleCartUpdate);
+    
+    // Also listen to storage events (for cross-tab updates)
+    window.addEventListener('storage', handleCartUpdate);
+    
+    return () => {
+      window.removeEventListener('cart-updated', handleCartUpdate);
+      window.removeEventListener('storage', handleCartUpdate);
+    };
+  }, []);
+
+  const updateCartCount = () => {
+    try {
+      const savedCart = localStorage.getItem('shopping_cart');
+      if (savedCart) {
+        const cart = JSON.parse(savedCart);
+        const count = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+        setCartCount(count);
+        console.log('Cart count updated:', count);
+      } else {
+        setCartCount(0);
+        console.log('Cart is empty');
+      }
+    } catch (error) {
+      console.error('Error loading cart count:', error);
+      setCartCount(0);
+    }
+  };
 
   return (
     <header className="header">
