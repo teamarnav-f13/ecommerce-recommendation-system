@@ -1,6 +1,8 @@
 import { ShoppingCart, Heart, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { activityAPI } from '../../services/api';
+import { fetchAuthSession } from 'aws-amplify/auth';
 
 function ProductCard({ product }) {
   const { 
@@ -19,12 +21,27 @@ function ProductCard({ product }) {
   const productRating = rating || Math.min(5, Math.floor((popularity_score || 50) / 20));
   const imageUrl = (images && images[0]) || `https://picsum.photos/seed/${product_id}/400/400`;
 
-  const handleAddToCart = (e) => {
-    e.preventDefault(); // Prevent navigation to product page
+  const handleAddToCart = async (e) => {
+    e.preventDefault();
     e.stopPropagation();
 
     try {
       console.log('ProductCard: Adding to cart...', product_name);
+
+      // Get user ID for activity logging
+      let userId = null;
+      try {
+        const session = await fetchAuthSession();
+        userId = session.tokens?.idToken?.payload?.sub;
+      } catch (authError) {
+        console.log('Not authenticated, skipping activity log');
+      }
+
+      // Log add to cart activity to DynamoDB
+      if (userId && product_id) {
+        await activityAPI.logAddToCart(product_id, userId, 1);
+        console.log('✅ Add to cart logged to DynamoDB');
+      }
 
       // Get existing cart from localStorage
       let currentCart = [];
@@ -76,8 +93,6 @@ function ProductCard({ product }) {
       
     } catch (error) {
       console.error('❌ ProductCard: Error adding to cart:', error);
-      console.error('Error details:', error.stack);
-      // Don't show alert - just log the error
       setAddedToCart(false);
     }
   };
