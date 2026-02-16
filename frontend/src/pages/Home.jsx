@@ -17,6 +17,7 @@ function Home() {
       const session = await fetchAuthSession();
       const uid = session.tokens?.idToken?.payload?.sub;
       setUserId(uid);
+      console.log('Current user ID:', uid);
     } catch (error) {
       console.log('Not authenticated');
     }
@@ -38,6 +39,13 @@ function Home() {
         <ProductGrid products={featuredProducts} loading={loading} />
       </section>
 
+      {/* Recommended Section - Shows if user is logged in */}
+      {userId && (
+        <section className="section">
+          <h2 className="section-title">Recommended For You</h2>
+          <RecommendedProducts userId={userId} />
+        </section>
+      )}
     </div>
   );
 }
