@@ -118,32 +118,47 @@ export const activityAPI = {
   }
 };
 
-// Recommendation API endpoints
 export const recommendationAPI = {
-  // General recommendations for user
+  // General recommendations
   getRecommendations: async (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
+    // Filter out undefined values
+    const cleanParams = {};
+    Object.keys(params).forEach(key => {
+      if (params[key] !== undefined && params[key] !== null && params[key] !== 'undefined') {
+        cleanParams[key] = params[key];
+      }
+    });
+    
+    const queryString = new URLSearchParams(cleanParams).toString();
+    console.log('Recommendation API query:', queryString);
     return apiRequest(`/recommendations?${queryString}`);
   },
 
   // Frequently bought together
   getFrequentlyBought: async (productId) => {
+    if (!productId || productId === 'undefined') {
+      console.warn('Invalid product ID for frequently bought');
+      return { products: [] };
+    }
     return apiRequest(`/recommendations?product_id=${productId}&type=frequently-bought&limit=4`);
   },
 
   // Similar products (category-based)
-  getSimilarProducts: async (productId) => {
+  getSimilarProducts: async (productId, category) => {
+    if (!productId || productId === 'undefined') {
+      console.warn('Invalid product ID for similar products');
+      return { products: [] };
+    }
     return apiRequest(`/recommendations?product_id=${productId}&type=similar&limit=8`);
   },
 
   // Users also viewed
   getUsersAlsoViewed: async (productId) => {
+    if (!productId || productId === 'undefined') {
+      console.warn('Invalid product ID for also viewed');
+      return { products: [] };
+    }
     return apiRequest(`/recommendations?product_id=${productId}&type=also-viewed&limit=6`);
-  },
-
-  // Personalized for user
-  getPersonalizedForUser: async (userId) => {
-    return apiRequest(`/recommendations?user_id=${userId}&limit=8`);
   }
 };
 
