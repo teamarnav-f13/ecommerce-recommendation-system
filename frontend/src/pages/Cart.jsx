@@ -28,25 +28,60 @@ function Cart() {
   setLoading(false);
 };
 
-  const updateQuantity = (itemId, newQuantity) => {
-    if (newQuantity < 1) return;
+  const handleQuantityChange = (itemId, newQuantity) => {
+  if (newQuantity < 1) {
+    handleRemoveItem(itemId);
+    return;
+  }
 
-    setCartItems(cartItems.map(item => 
-      item.id === itemId 
-        ? { ...item, quantity: Math.min(newQuantity, item.stock_quantity) }
-        : item
-    ));
-  };
+  try {
+    // Update quantity in state
+    const updatedCart = cartItems.map(item =>
+      item.id === itemId ? { ...item, quantity: newQuantity } : item
+    );
+    setCartItems(updatedCart);
+    
+    // Update localStorage
+    localStorage.setItem('shopping_cart', JSON.stringify(updatedCart));
+    
+    // Trigger cart update event for header
+    window.dispatchEvent(new Event('cart-updated'));
+    
+    console.log('Quantity updated, cart saved');
+  } catch (error) {
+    console.error('Error updating quantity:', error);
+  }
+};
 
-  const removeItem = (itemId) => {
-    setCartItems(cartItems.filter(item => item.id !== itemId));
-  };
+  const handleRemoveItem = (itemId) => {
+  try {
+    // Remove item from cart
+    const updatedCart = cartItems.filter(item => item.id !== itemId);
+    setCartItems(updatedCart);
+    
+    // Update localStorage
+    localStorage.setItem('shopping_cart', JSON.stringify(updatedCart));
+    
+    // Trigger cart update event for header
+    window.dispatchEvent(new Event('cart-updated'));
+    
+    console.log('Item removed, cart updated');
+  } catch (error) {
+    console.error('Error removing item:', error);
+  }
+};
 
-  const clearCart = () => {
-    if (window.confirm('Are you sure you want to clear your cart?')) {
-      setCartItems([]);
-    }
-  };
+  const handleClearCart = () => {
+  if (window.confirm('Are you sure you want to clear your cart?')) {
+    setCartItems([]);
+    localStorage.removeItem('shopping_cart');
+    
+    // Trigger cart update event for header
+    window.dispatchEvent(new Event('cart-updated'));
+    
+    console.log('Cart cleared');
+  }
+};
 
   const calculateSubtotal = () => {
     return cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
