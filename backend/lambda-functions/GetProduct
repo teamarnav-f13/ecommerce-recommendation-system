@@ -1,0 +1,58 @@
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
+
+const client = new DynamoDBClient({ region: 'ap-south-1' });
+const dynamodb = DynamoDBDocumentClient.from(client);
+
+export const handler = async (event) => {
+    console.log('Event:', JSON.stringify(event, null, 2));
+
+    try {
+        const productId = event.pathParameters?.productId;
+
+        if (!productId) {
+            return {
+                statusCode: 400,
+                headers: { 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ error: 'Product ID is required' })
+            };
+        }
+
+        const params = {
+            TableName: 'Products',
+            Key: {
+                product_id: productId
+            }
+        };
+
+        const command = new GetCommand(params);
+        const result = await dynamodb.send(command);
+
+        if (!result.Item) {
+            return {
+                statusCode: 404,
+                headers: { 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ error: 'Product not found' })
+            };
+        }
+
+        return {
+            statusCode: 200,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                product: result.Item
+            })
+        };
+
+    } catch (error) {
+        console.error('Error:', error);
+        return {
+            statusCode: 500,
+            headers: { 'Access-Control-Allow-Origin': '*' },
+            body: JSON.stringify({ error: error.message })
+        };
+    }
+};
